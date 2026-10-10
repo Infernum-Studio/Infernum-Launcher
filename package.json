@@ -1,0 +1,44 @@
+{
+  "name": "infernum-launcher",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "packageManager": "pnpm@11.26.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "lint": "eslint .",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/big-shoulders-display": "^5.3.0",
+    "@fontsource-variable/familjen-grotesk": "^5.3.0",
+    "@tauri-apps/api": "^2.12.2",
+    "pinia": "^4.0.3",
+    "skinview3d": "^3.4.2",
+    "vue": "^3.5.43",
+    "vue-i18n": "^11.4.13",
+    "vue-router": "^5.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/cli": "^2.12.1",
+    "@types/node": "^26.6.4",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "eslint": "^10.12.0",
+    "eslint-plugin-vue": "^10.11.1",
+    "globals": "^17.13.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3",
+    "vue-eslint-parser": "^10.4.1",
+    "vue-tsc": "^3.3.12"
+  }
+}
