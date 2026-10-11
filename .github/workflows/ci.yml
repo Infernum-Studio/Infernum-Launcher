@@ -1,0 +1,277 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  frontend:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Linux system packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: cargo fmt --check
+        working-directory: src-tauri
+      - run: cargo clippy --locked --all-targets -- -D warnings
+        working-directory: src-tauri
+      - run: cargo test --locked
+        working-directory: src-tauri
+
+  audit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+      - run: cargo install cargo-audit --locked --version 0.22.2
+      - run: cargo audit
+        working-directory: src-tauri
+
+  smoke:
+    needs: rust
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Linux system packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: cargo build --locked
+        working-directory: src-tauri
+      - name: Build test pack and events.json
+        shell: python
+        env:
+          E2E: ${{ runner.temp }}/e2e
+        run: |
+          import hashlib, io, json, os, pathlib, urllib.request, zipfile
+
+          out = pathlib.Path(os.environ["E2E"]).resolve()
+          (out / "data").mkdir(parents=True, exist_ok=True)
+          mod_url = "https://cdn.modrinth.com/data/AANobbMI/versions/sC6wj32u/sodium-neoforge-0.8.14%2Bmc1.21.11.jar"
+          req = urllib.request.Request(mod_url, headers={"User-Agent": "infernum-launcher-ci"})
+          jar = urllib.request.urlopen(req, timeout=60).read()
+
+          index = {
+              "formatVersion": 1,
+              "game": "minecraft",
+              "versionId": "0.0.1",
+              "name": "hellcraft2",
+              "files": [{
+                  "path": "mods/sodium-neoforge-0.8.14+mc1.21.11.jar",
+                  "hashes": {"sha1": hashlib.sha1(jar).hexdigest(), "sha512": hashlib.sha512(jar).hexdigest()},
+                  "env": {"client": "required", "server": "required"},
+                  "downloads": [mod_url],
+                  "fileSize": len(jar),
+              }],
+              "dependencies": {"minecraft": "1.21.11", "neoforge": "21.11.45"},
+          }
+          buf = io.BytesIO()
+          with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+              z.writestr("modrinth.index.json", json.dumps(index))
+              z.writestr("overrides/config/infernum-test.toml", 'pack_version = "0.0.1"\n')
+          pack = out / "hc2-0.0.1.mrpack"
+          pack.write_bytes(buf.getvalue())
+
+          (out / "events.json").write_text(json.dumps({"schemaVersion": 1, "events": [{
+              "id": "hellcraft2",
+              "name": {"es": "HellCraft 2"},
+              "status": "testing",
+              "packUrl": pack.as_uri(),
+              "packSha512": hashlib.sha512(buf.getvalue()).hexdigest(),
+              "packVersion": "0.0.1",
+          }]}))
+          (out / "data" / "settings.json").write_text(json.dumps({
+              "onboardingDone": True,
+              "accounts": [{"id": "c9e3c8b0-b1a6-3d94-bb44-30655e40c01a", "name": "InfernumTest", "kind": "offline"}],
+              "activeAccount": "c9e3c8b0-b1a6-3d94-bb44-30655e40c01a",
+          }))
+
+      - name: Sign events.json with a throwaway key
+        shell: bash
+        env:
+          E2E: ${{ runner.temp }}/e2e
+        run: |
+          pnpm tauri signer generate --ci -p "" -w "$E2E/events.key"
+          pnpm tauri signer sign -f "$E2E/events.key" -p "" "$E2E/events.json"
+          echo "INFERNUM_EVENTS_PUBKEY=$(cat "$E2E/events.key.pub")" >> "$GITHUB_ENV"
+
+      - name: Run launcher with autoplay (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $e2e = "${{ runner.temp }}\e2e"
+          $env:INFERNUM_DATA_DIR = "$e2e\data"
+          $env:INFERNUM_EVENTS_URL = ([System.Uri]"$e2e\events.json").AbsoluteUri
+          $env:INFERNUM_AUTOPLAY = "hellcraft2"
+          $p = Start-Process -FilePath "src-tauri\target\debug\infernum-launcher.exe" -PassThru
+          $log = "$e2e\data\logs\launcher.log"
+          $deadline = (Get-Date).AddMinutes(10)
+          $result = $null
+          while ((Get-Date) -lt $deadline -and -not $result) {
+            Start-Sleep -Seconds 5
+            if (Test-Path $log) {
+              $result = Select-String -Path $log -Pattern "autoplay: (game started|play failed.*)" | Select-Object -Last 1
+            }
+            if ($p.HasExited) { break }
+          }
+          if (Test-Path $log) { Get-Content $log -Tail 60 }
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          Get-Process java, javaw -ErrorAction SilentlyContinue | Stop-Process -Force
+          if (-not $result -or $result.Line -notmatch "game started") { throw "autoplay did not start the game" }
+          $mods = Get-ChildItem "$e2e\data\theseus\profiles\hellcraft2\mods" -Name
+          if ($mods -notcontains "sodium-neoforge-0.8.14+mc1.21.11.jar") { throw "pack mod missing" }
+
+      - name: Run launcher with autoplay (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          e2e="${{ runner.temp }}/e2e"
+          log="$e2e/data/logs/launcher.log"
+          INFERNUM_DATA_DIR="$e2e/data" \
+          INFERNUM_EVENTS_URL="file://$e2e/events.json" \
+          INFERNUM_AUTOPLAY=hellcraft2 \
+            xvfb-run -a src-tauri/target/debug/infernum-launcher &
+          pid=$!
+          result=""
+          for _ in $(seq 120); do
+            sleep 5
+            result=$(grep -oE "autoplay: (game started|play failed.*)" "$log" 2>/dev/null | tail -1 || true)
+            [ -n "$result" ] && break
+            kill -0 "$pid" 2>/dev/null || break
+          done
+          tail -n 60 "$log" || true
+          kill "$pid" 2>/dev/null || true
+          pkill -f "$e2e/data" || true
+          [[ "$result" == "autoplay: game started" ]] || { echo "autoplay did not start the game"; exit 1; }
+          ls "$e2e/data/theseus/profiles/hellcraft2/mods" | grep -qxF "sodium-neoforge-0.8.14+mc1.21.11.jar" || { echo "pack mod missing"; exit 1; }
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: smoke-logs-${{ runner.os }}
+          path: |
+            ${{ runner.temp }}/e2e/data/logs
+            ${{ runner.temp }}/e2e/data/theseus/profiles/hellcraft2/logs
+          if-no-files-found: ignore
+
+  bundles:
+    if: github.event_name != 'pull_request'
+    needs: rust
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            bundles: nsis
+          - os: ubuntu-22.04
+            bundles: appimage,deb,rpm
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Linux system packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tauri build --bundles ${{ matrix.bundles }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: infernum-launcher-${{ runner.os }}
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+          if-no-files-found: error
