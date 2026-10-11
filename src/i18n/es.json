@@ -1,0 +1,153 @@
+{
+  "common": {
+    "next": "Siguiente",
+    "back": "Atrás",
+    "finish": "Terminar",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "remove": "Quitar",
+    "details": "Detalles",
+    "loading": "Cargando…",
+    "retry": "Reintentar",
+    "cancel": "Cancelar"
+  },
+  "nav": {
+    "home": "Eventos",
+    "accounts": "Cuentas",
+    "settings": "Ajustes"
+  },
+  "titlebar": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "close": "Cerrar"
+  },
+  "welcome": {
+    "title": "Te damos la bienvenida a Infernum Launcher",
+    "ramTitle": "Memoria para el juego",
+    "ramHint": "Recomendado: 2 GB o más. Puedes cambiarlo luego en Ajustes.",
+    "accountTitle": "Tu cuenta de Minecraft",
+    "accountHint": "Escribe tu nombre de jugador.",
+    "doneTitle": "Ya puedes jugar",
+    "doneHint": "Elige un evento y pulsa Jugar."
+  },
+  "home": {
+    "offline": "No se pudo actualizar la lista de eventos. Se muestra la última guardada.",
+    "running": "Jugando ahora",
+    "news": "Noticias",
+    "noNews": "Todavía no hay noticias.",
+    "noEventsTitle": "Sin eventos",
+    "noEvents": "Ahora mismo no hay ningún evento activo. Avisaremos en nuestras redes cuando empiece el próximo.",
+    "joinDiscord": "Unirse al Discord",
+    "loadFailedTitle": "Sin conexión",
+    "loadFailed": "No se pudo cargar la lista de eventos. Revisa tu conexión e inténtalo de nuevo.",
+    "endedHint": "Este evento ha finalizado. ¡Gracias por jugar!"
+  },
+  "status": {
+    "ended": "Terminado"
+  },
+  "event": {
+    "openGameFolder": "Carpeta del juego",
+    "openLogs": "Registros",
+    "ramBelowMin": "Tienes {ram} GB asignados; este evento necesita al menos {min} GB."
+  },
+  "play": {
+    "play": "Jugar",
+    "checking": "Comprobando…",
+    "installing": "Instalando…",
+    "launching": "Iniciando…",
+    "running": "Detener",
+    "ended": "Evento terminado",
+    "noAccount": "Añade una cuenta para jugar",
+    "stopTitle": "¿Cerrar el juego?",
+    "stopBody": "Minecraft se cerrará al momento.",
+    "stopConfirm": "Cerrar el juego"
+  },
+  "progress": {
+    "checking": "Comprobando",
+    "java": "Preparando Java",
+    "pack": "Descargando el pack",
+    "minecraft": "Instalando Minecraft",
+    "mods": "Descargando mods",
+    "integrity": "Verificando archivos",
+    "launching": "Abriendo el juego",
+    "minecraftLoader": "Instalando Minecraft y {loader}"
+  },
+  "accounts": {
+    "title": "Cuentas",
+    "nickname": "Nombre de jugador",
+    "nicknameRule": "3–16 caracteres: letras, números o _",
+    "add": "Añadir",
+    "active": "En uso",
+    "use": "Usar",
+    "offline": "No premium",
+    "microsoft": "Microsoft",
+    "loginMicrosoft": "Iniciar sesión con Microsoft",
+    "orOffline": "o usa una cuenta no premium",
+    "microsoftTitle": "Cuenta de Microsoft",
+    "microsoftHint": "Inicia sesión con tu cuenta de Minecraft premium para usar tu nombre y tu skin.",
+    "offlineTitle": "No premium",
+    "signedIn": "Sesión iniciada con Microsoft",
+    "signOut": "Cerrar sesión",
+    "useAnother": "Usar otra cuenta",
+    "waitingMicrosoft": "Esperando a Microsoft…"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "ramOf": "de {total} GB en este equipo",
+    "jvmArgs": "Argumentos de Java",
+    "jvmArgsHint": "Solo para usuarios avanzados. No lo cambies si no sabes lo que haces.",
+    "closeOnLaunch": "Ocultar el launcher al jugar",
+    "folders": "Carpetas",
+    "launcherLogs": "Registros del launcher",
+    "version": "Versión {version}",
+    "saved": "Guardado",
+    "ram": "Memoria RAM",
+    "ramHint": "Cuánta memoria puede usar Minecraft.",
+    "whilePlaying": "Mientras juegas",
+    "notAffiliated": "No es un producto oficial de Minecraft. No está aprobado por Mojang Studios ni Microsoft ni asociado con ellos."
+  },
+  "quarantine": {
+    "title": "Archivos movidos",
+    "body": "Estos archivos no forman parte del pack y se han movido fuera de la carpeta mods. No se ha borrado nada.",
+    "open": "Abrir carpeta"
+  },
+  "crash": {
+    "title": "El juego se ha cerrado inesperadamente",
+    "body": "Abre los registros del juego para ver el error.",
+    "openLogs": "Abrir registros"
+  },
+  "errors": {
+    "generic": "No se pudo completar la acción.",
+    "network": "No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.",
+    "hash_mismatch": "Un archivo descargado está dañado. Inténtalo de nuevo.",
+    "already_running": "El juego ya se está abriendo o está en marcha.",
+    "no_account": "Añade o elige una cuenta antes de jugar.",
+    "event_ended": "Este evento ha terminado.",
+    "event_not_found": "No se encontró el evento. Actualiza la lista.",
+    "launcher_outdated": "Hay una versión nueva del launcher. Actualízalo para continuar.",
+    "invalid_pack": "El pack del evento no es válido. Avisa al staff.",
+    "invalid_nickname": "Nombre no válido: 3–16 caracteres, solo letras, números o _.",
+    "jvm_args_memory": "No pongas -Xmx ni -Xms aquí; usa el control de memoria.",
+    "jvm_args_unparsable": "Los argumentos tienen comillas sin cerrar.",
+    "jvm_args_blocked": "Ese argumento no está permitido. Solo se aceptan opciones de rendimiento como -XX:, -Xss o -Dfile.encoding.",
+    "java_unavailable": "No se pudo descargar Java para este sistema.",
+    "java_install_failed": "Java se instaló pero no funciona.",
+    "minecraft_install_failed": "Falló la instalación de Minecraft.",
+    "instance_ambiguous": "Hay varias instalaciones con el mismo nombre. Avisa al staff.",
+    "not_installed": "Este evento aún no está instalado.",
+    "cancelled": "Cancelado.",
+    "io": "Error al leer o escribir archivos.",
+    "launcher_core": "Error interno del launcher.",
+    "msa_failed": "No se pudo iniciar sesión con Microsoft.",
+    "msa_login_required": "Tu sesión de Microsoft caducó. Vuelve a iniciar sesión en Cuentas.",
+    "msa_disabled": "El inicio de sesión con Microsoft está desactivado en esta versión.",
+    "account_not_found": "No se encontró la cuenta.",
+    "invalid_event": "La configuración del evento no es válida. Avisa al staff.",
+    "minecraft_loader_install_failed": "Falló la instalación de Minecraft/{loader}.",
+    "invalid_input": "Los datos enviados no son válidos.",
+    "invalid_data": "Un archivo del launcher está dañado o tiene un formato inesperado.",
+    "invalid_archive": "Un archivo descargado no se pudo abrir. Inténtalo de nuevo.",
+    "internal": "Error interno del launcher. Reinícialo e inténtalo de nuevo.",
+    "events_signature": "La lista de eventos no tiene una firma válida. Avisa al staff."
+  }
+}
