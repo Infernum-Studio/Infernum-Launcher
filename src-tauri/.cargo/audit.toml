@@ -1,9 +1,4 @@
-# Estas vulnerabilidades son de theseus, se corregirán pronto
 [advisories]
 ignore = [
-    "RUSTSEC-2026-0118",
-    "RUSTSEC-2026-0119",
-    "RUSTSEC-2026-0194",
-    "RUSTSEC-2026-0195",
-    "RUSTSEC-2023-0071",
+    "RUSTSEC-2023-0071", # rsa: no nos afecta, solo con sqlx-mysql
 ]
