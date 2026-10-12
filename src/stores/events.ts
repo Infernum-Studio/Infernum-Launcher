@@ -42,6 +42,7 @@ export const useEventsStore = defineStore('events', () => {
     try {
       localStorage.setItem('selectedEvent', id)
     } catch {
+      // si localStorage no esta disponible, la selección no se guarda
     }
   }
 
