@@ -7,13 +7,14 @@ const props = defineProps<{ dimBottom?: boolean }>()
 
 const events = useEventsStore()
 const art = computed(() => events.selected?.art.background ?? null)
-const backgroundUrl = computed(() => art.value ?? (props.dimBottom ? defaultArt : null))
+const showArt = computed(() => !!art.value || !!props.dimBottom)
 </script>
 
 <template>
   <div class="backdrop pointer-events-none" aria-hidden="true">
-    <img v-if="backgroundUrl" :src="backgroundUrl" alt="" draggable="false" class="absolute inset-0 h-full w-full object-cover" />
-    <div class="shade" :class="{ 'over-art': backgroundUrl }" />
+    <img :src="art ?? defaultArt" alt="" draggable="false" class="art absolute inset-0 h-full w-full object-cover" :class="{ on: showArt }" />
+    <div class="shade over-art" />
+    <div class="shade plain" :class="{ on: !showArt }" />
     <div class="bottom" :class="{ on: dimBottom }" />
     <div class="grain" />
   </div>
@@ -27,9 +28,20 @@ const backgroundUrl = computed(() => art.value ?? (props.dimBottom ? defaultArt 
   z-index: 0;
   background: #0c0809;
 }
+.art,
+.shade.plain {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.art.on,
+.shade.plain.on {
+  opacity: 1;
+}
 .shade {
   position: absolute;
   inset: 0;
+}
+.shade.plain {
   background:
     radial-gradient(ellipse 70% 60% at 78% 100%, rgb(150 40 34 / 0.28), transparent 70%),
     linear-gradient(180deg, #0c0809 0%, #120b0c 100%);

@@ -44,11 +44,7 @@ onMounted(async () => {
         <WindowControls />
       </div>
       <main v-if="ready" class="min-h-0 flex-1 overflow-y-auto">
-        <RouterView v-slot="{ Component }">
-          <Transition name="page" mode="out-in">
-            <component :is="Component" />
-          </Transition>
-        </RouterView>
+        <RouterView />
       </main>
     </div>
   </div>
@@ -57,16 +53,3 @@ onMounted(async () => {
   <CrashDialog />
 </template>
 
-<style>
-.page-enter-active,
-.page-leave-active {
-  transition: opacity 0.16s ease, transform 0.16s ease;
-}
-.page-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
-}
-.page-leave-to {
-  opacity: 0;
-}
-</style>

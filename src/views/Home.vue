@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import SkinViewer from '@/components/SkinViewer.vue'
@@ -21,14 +21,19 @@ const settings = useSettingsStore()
 const skin = useSkinStore()
 const errors = useErrorsStore()
 const { locale, t } = useI18n()
+const route = useRoute()
+
+watch(
+  () => [route.name, route.params.id] as const,
+  ([name, id]) => {
+    if (name === 'event' && typeof id === 'string') events.select(id)
+  },
+  { immediate: true },
+)
 
 const newsOpen = ref(false)
 const event = computed(() => events.selected)
 const title = computed(() => (event.value ? eventName(event.value, locale.value) : null))
-const nameOf = (id: string) => {
-  const e = events.byId(id)
-  return (e && eventName(e, locale.value)) ?? id
-}
 
 const accent = computed(() => {
   const a = event.value?.art.accent
@@ -99,7 +104,7 @@ function stopGame() {
           <p v-if="lowRam" class="mt-6 max-w-sm text-xs text-warn">{{ $t('event.ramBelowMin', lowRam) }}</p>
         </template>
 
-        <p v-else-if="events.loading" class="title font-display text-faint">{{ $t('common.loading') }}</p>
+        <p v-else-if="events.loading && !events.events.length" class="title font-display text-faint">{{ $t('common.loading') }}</p>
 
         <div v-else-if="events.error" class="max-w-md">
           <h1 class="title stacked font-display text-muted">
@@ -148,7 +153,7 @@ function stopGame() {
       </button>
 
       <div class="flex items-center justify-end">
-        <button class="play" :class="{ running: phase === 'running', busy }" :disabled="playDisabled" @click="play">
+        <button class="play" :class="{ busy }" :disabled="playDisabled" @click="play">
           <span v-if="busy" class="spinner" />
           {{ $t(playLabel) }}
         </button>
@@ -166,7 +171,7 @@ function stopGame() {
     <Modal :open="confirmStop" :title="$t('play.stopTitle')" :close-label="$t('common.cancel')" @close="confirmStop = false">
       <p class="text-sm text-muted">{{ $t('play.stopBody') }}</p>
       <template #actions>
-        <button class="btn-primary" @click="stopGame">{{ $t('play.stopConfirm') }}</button>
+        <button class="btn-danger" @click="stopGame">{{ $t('play.stopConfirm') }}</button>
       </template>
     </Modal>
   </div>
@@ -260,9 +265,6 @@ function stopGame() {
   color: var(--color-text);
   font-size: 1.6rem;
   text-shadow: none;
-}
-.play.running {
-  color: var(--color-ember-soft);
 }
 .spinner {
   width: 15px;

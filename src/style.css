@@ -117,6 +117,15 @@ canvas {
   }
 }
 
+@utility btn-danger {
+  @apply btn text-white;
+  background: #a8242b;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  &:hover:not(:disabled) {
+    background: #bd2c33;
+  }
+}
+
 @utility btn-ghost {
   @apply btn text-text;
   background: rgb(255 255 255 / 0.05);

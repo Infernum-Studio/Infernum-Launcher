@@ -72,9 +72,10 @@ onBeforeUnmount(deactivate)
 
 <template>
   <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="open" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-8 backdrop-blur-sm" @click.self="$emit('close')">
-        <div ref="dialog" class="glass-strong w-full max-w-md rounded-2xl p-6 outline-none" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
+    <Transition name="modal" :duration="180">
+      <div v-if="open" class="fixed inset-0 z-50 grid place-items-center p-8">
+        <div class="overlay absolute inset-0 bg-black/45 backdrop-blur-sm" @click="$emit('close')" />
+        <div ref="dialog" class="dialog glass-strong relative w-full max-w-md rounded-2xl p-6 outline-none" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
           <h2 :id="titleId" class="mb-3 text-lg leading-snug font-semibold text-balance">{{ title }}</h2>
           <slot />
           <div class="mt-6 flex justify-end gap-2">
@@ -88,19 +89,22 @@ onBeforeUnmount(deactivate)
 </template>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
+
+.modal-enter-active .overlay,
+.modal-leave-active .overlay {
   transition: opacity 0.18s ease;
 }
-.modal-enter-active .glass-strong,
-.modal-leave-active .glass-strong {
-  transition: transform 0.18s ease;
+.modal-enter-active .dialog,
+.modal-leave-active .dialog {
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
-.modal-enter-from,
-.modal-leave-to {
+.modal-enter-from .overlay,
+.modal-leave-to .overlay,
+.modal-enter-from .dialog,
+.modal-leave-to .dialog {
   opacity: 0;
 }
-.modal-enter-from .glass-strong {
+.modal-enter-from .dialog {
   transform: translateY(8px) scale(0.98);
 }
 </style>
