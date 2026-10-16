@@ -9,8 +9,9 @@ use tokio_util::sync::CancellationToken;
 use crate::accounts::{AccountKind, microsoft};
 use crate::error::{AppError, AppResult};
 use crate::events::{self, EventStatus};
+use crate::game_process::{self, SavedGame};
 use crate::progress::{Reporter, Step};
-use crate::state::{AppState, RunningGame};
+use crate::state::{AppState, GameHandle, RunningGame};
 use crate::{integrity, java, pack_sync, settings};
 
 #[derive(Serialize, Clone)]
@@ -59,6 +60,7 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
         .launch_lock
         .try_lock()
         .map_err(|_| AppError::new("already_running", "a launch is already in progress"))?;
+    restore(&app).await;
     if state.running().is_some() {
         return Err(AppError::new(
             "already_running",
@@ -114,6 +116,7 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
     reporter.step(Step::Launching);
     apply_launch_overrides(&outcome.instance_id, &settings, &java_exe).await?;
     let quick_play = theseus::instance::QuickPlayType::None;
+    let launched_at = chrono::Utc::now();
     let process = match account.kind {
         AccountKind::Offline => {
             theseus::instance::run_with_credentials(
@@ -128,10 +131,24 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
             theseus::instance::run(&outcome.instance_id, quick_play).await?
         }
     };
+    match game_process::find_launched_java(launched_at.timestamp().max(0) as u64) {
+        Some(java) => {
+            let saved = SavedGame {
+                event_id: event.id.clone(),
+                instance_id: outcome.instance_id.clone(),
+                game_dir: outcome.game_dir.clone(),
+                process: java,
+            };
+            game_process::save(&state.paths, &saved).await;
+        }
+        None => {
+            log::warn!("no se puedo encontrr el proceso del juego, el launcher no lo encontrará")
+        }
+    }
     state.set_running(Some(RunningGame {
         event_id: event.id.clone(),
         instance_id: outcome.instance_id.clone(),
-        process: process.uuid,
+        handle: GameHandle::Spawned(process.uuid),
         kill_requested: false,
     }));
     let _ = app.emit(
@@ -147,8 +164,44 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
         let _ = window.hide();
     }
 
-    tauri::async_runtime::spawn(monitor(app.clone(), outcome.game_dir, chrono::Utc::now()));
+    tauri::async_runtime::spawn(monitor(app.clone(), outcome.game_dir, launched_at));
     Ok(())
+}
+
+pub async fn restore(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    state
+        .restored
+        .get_or_init(|| async {
+            let Some(saved) = game_process::load(&state.paths).await else {
+                return;
+            };
+            if state.running().is_some() || !saved.process.is_alive() {
+                game_process::clear(&state.paths).await;
+                return;
+            }
+            log::info!("el juego de {} aun esta abierto", saved.event_id);
+            let started = chrono::DateTime::from_timestamp(saved.process.start_time as i64, 0)
+                .unwrap_or_else(chrono::Utc::now);
+            state.set_running(Some(RunningGame {
+                event_id: saved.event_id,
+                instance_id: saved.instance_id,
+                handle: GameHandle::Restored(saved.process),
+                kill_requested: false,
+            }));
+            tauri::async_runtime::spawn(monitor(app.clone(), saved.game_dir, started));
+        })
+        .await;
+}
+
+async fn is_alive(running: &RunningGame) -> theseus::Result<bool> {
+    match running.handle {
+        GameHandle::Spawned(uuid) => Ok(theseus::process::get_by_instance_id(&running.instance_id)
+            .await?
+            .iter()
+            .any(|p| p.uuid == uuid)),
+        GameHandle::Restored(process) => Ok(process.is_alive()),
+    }
 }
 
 async fn apply_launch_overrides(
@@ -184,9 +237,9 @@ async fn monitor(app: AppHandle, game_dir: PathBuf, started: chrono::DateTime<ch
     let mut errors = 0;
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
-        match theseus::process::get_by_instance_id(&running.instance_id).await {
-            Ok(list) if list.iter().any(|p| p.uuid == running.process) => errors = 0,
-            Ok(_) => break,
+        match is_alive(&running).await {
+            Ok(true) => errors = 0,
+            Ok(false) => break,
             Err(err) => {
                 errors += 1;
                 if errors >= MAX_MONITOR_ERRORS {
@@ -208,6 +261,7 @@ async fn monitor(app: AppHandle, game_dir: PathBuf, started: chrono::DateTime<ch
     }
     let kill_requested = state.running().is_some_and(|r| r.kill_requested);
     state.set_running(None);
+    game_process::clear(&state.paths).await;
 
     let code = status.as_ref().and_then(|s| s.code);
     let new_crash_report = has_crash_report_since(&game_dir, started).await;
@@ -305,9 +359,15 @@ pub async fn kill(state: &AppState) -> AppResult<()> {
         return Ok(());
     };
     running.kill_requested = true;
-    let instance_id = running.instance_id.clone();
-    state.set_running(Some(running));
-    theseus::instance::kill(&instance_id).await?;
+    state.set_running(Some(running.clone()));
+    match running.handle {
+        GameHandle::Spawned(_) => theseus::instance::kill(&running.instance_id).await?,
+        GameHandle::Restored(process) => {
+            if !process.kill() {
+                log::warn!("no se pudo detener el proceso {}", process.pid);
+            }
+        }
+    }
     Ok(())
 }
 

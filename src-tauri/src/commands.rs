@@ -260,10 +260,11 @@ pub struct GameStatus {
 }
 
 #[tauri::command]
-pub fn game_status(state: State<'_, AppState>) -> GameStatus {
-    GameStatus {
+pub async fn game_status(app: AppHandle, state: State<'_, AppState>) -> AppResult<GameStatus> {
+    crate::launch::restore(&app).await;
+    Ok(GameStatus {
         running_event: state.running().map(|r| r.event_id),
-    }
+    })
 }
 
 async fn game_dir(state: &AppState, event_id: &str) -> AppResult<std::path::PathBuf> {

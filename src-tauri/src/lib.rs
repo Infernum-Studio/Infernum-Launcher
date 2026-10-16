@@ -5,6 +5,7 @@ mod commands;
 mod config;
 mod error;
 mod events;
+mod game_process;
 mod integrity;
 mod java;
 mod launch;

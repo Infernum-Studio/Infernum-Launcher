@@ -5,11 +5,17 @@ use crate::error::{AppError, AppResult};
 use crate::paths::Paths;
 use crate::settings::Settings;
 
+#[derive(Debug, Clone, Copy)]
+pub enum GameHandle {
+    Spawned(uuid::Uuid),
+    Restored(crate::game_process::GameProcess),
+}
+
 #[derive(Debug, Clone)]
 pub struct RunningGame {
     pub event_id: String,
     pub instance_id: String,
-    pub process: uuid::Uuid,
+    pub handle: GameHandle,
     pub kill_requested: bool,
 }
 
@@ -21,6 +27,7 @@ pub struct AppState {
     pub running: std::sync::Mutex<Option<RunningGame>>,
     cancel: std::sync::Mutex<CancellationToken>,
     theseus: OnceCell<()>,
+    pub restored: OnceCell<()>,
 }
 
 impl AppState {
@@ -35,6 +42,7 @@ impl AppState {
             running: std::sync::Mutex::new(None),
             cancel: std::sync::Mutex::new(CancellationToken::new()),
             theseus: OnceCell::new(),
+            restored: OnceCell::new(),
         }
     }
 
