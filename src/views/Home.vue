@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import SkinViewer from '@/components/SkinViewer.vue'
 import ErrorDialog from '@/components/ErrorDialog.vue'
 import Modal from '@/components/Modal.vue'
@@ -22,7 +23,6 @@ const errors = useErrorsStore()
 const { locale, t } = useI18n()
 
 const newsOpen = ref(false)
-const pickerOpen = ref(false)
 const event = computed(() => events.selected)
 const title = computed(() => (event.value ? eventName(event.value, locale.value) : null))
 const nameOf = (id: string) => {
@@ -34,31 +34,6 @@ const accent = computed(() => {
   const a = event.value?.art.accent
   return a && /^#[0-9a-f]{6}$/i.test(a) ? a : null
 })
-
-function selectEvent(id: string) {
-  events.select(id)
-  pickerOpen.value = false
-}
-
-const pickerRoot = ref<HTMLElement | null>(null)
-function onPointer(e: PointerEvent) {
-  if (!pickerRoot.value?.contains(e.target as Node)) pickerOpen.value = false
-}
-function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') pickerOpen.value = false
-}
-function unlisten() {
-  document.removeEventListener('pointerdown', onPointer)
-  document.removeEventListener('keydown', onKey)
-}
-watch(pickerOpen, (open) => {
-  unlisten()
-  if (open) {
-    document.addEventListener('pointerdown', onPointer)
-    document.addEventListener('keydown', onKey)
-  }
-})
-onBeforeUnmount(unlisten)
 
 const isThisEvent = computed(() => !!event.value && launch.eventId === event.value.id)
 const phase = computed(() => (isThisEvent.value ? launch.phase : 'idle'))
@@ -118,40 +93,8 @@ function stopGame() {
     <div class="relative flex min-h-0 flex-1">
       <section class="z-10 flex min-w-0 flex-1 flex-col justify-center pt-12 pr-6 pb-6 pl-[9%]">
         <template v-if="event">
-          <div ref="pickerRoot" class="relative">
-            <component
-              :is="events.events.length > 1 ? 'button' : 'div'"
-              class="group flex items-end gap-4 text-left"
-              :aria-expanded="events.events.length > 1 ? pickerOpen : undefined"
-              @click="events.events.length > 1 && (pickerOpen = !pickerOpen)"
-            >
-              <img v-if="event.art.logo" :src="event.art.logo" :alt="title ?? event.id" class="max-h-40 max-w-[min(520px,100%)] object-contain object-left" />
-              <h1 v-else class="title font-display">{{ title ?? '' }}</h1>
-              <svg
-                v-if="events.events.length > 1"
-                viewBox="0 0 24 24"
-                class="mb-3 h-7 w-7 shrink-0 text-muted transition group-hover:text-text"
-                :class="{ 'rotate-180': pickerOpen }"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-              ><path d="M6 9l6 6 6-6" /></svg>
-            </component>
-            <Transition name="pop">
-              <ul v-if="pickerOpen" class="glass-strong absolute top-full left-0 z-30 mt-3 min-w-72 rounded-xl p-1.5">
-                <li v-for="e in events.events" :key="e.id">
-                  <button
-                    class="flex w-full items-center justify-between gap-6 rounded-lg px-3.5 py-2.5 text-left transition-colors hover:bg-white/6"
-                    :class="{ 'text-ember': e.id === event.id }"
-                    @click="selectEvent(e.id)"
-                  >
-                    <span class="font-display text-xl font-bold uppercase">{{ nameOf(e.id) }}</span>
-                    <span v-if="e.status === 'ended'" class="text-xs text-faint">{{ $t('status.ended') }}</span>
-                  </button>
-                </li>
-              </ul>
-            </Transition>
-          </div>
+          <img v-if="event.art.logo" :src="event.art.logo" :alt="title ?? event.id" class="max-h-40 max-w-[min(520px,100%)] object-contain object-left" />
+          <h1 v-else class="title font-display">{{ title ?? '' }}</h1>
           <p v-if="event.status === 'ended'" class="mt-4 text-sm text-muted">{{ $t('home.endedHint') }}</p>
           <p v-if="lowRam" class="mt-6 max-w-sm text-xs text-warn">{{ $t('event.ramBelowMin', lowRam) }}</p>
         </template>

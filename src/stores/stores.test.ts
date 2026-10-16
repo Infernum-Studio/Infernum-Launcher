@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
       cancelInstall: vi.fn(),
       gameStatus: vi.fn(),
       accountSkin: vi.fn(),
+      eventsList: vi.fn(),
     },
     listenTo: {
       progress: listen('progress'),
@@ -36,12 +37,49 @@ vi.mock('@/api/tauri', async (importOriginal) => ({
 
 const { useLaunchStore } = await import('./launch')
 const { useErrorsStore } = await import('./errors')
+const { useEventsStore } = await import('./events')
 const { useSkinStore } = await import('./skin')
 
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
   mocks.api.gameStatus.mockResolvedValue({ runningEvent: null })
+})
+
+const event = (id: string, status: string) => ({ id, status, name: {}, art: {}, discord: {} })
+
+describe('events store', () => {
+  async function loaded(list: ReturnType<typeof event>[]) {
+    mocks.api.eventsList.mockResolvedValue({ events: list, offline: false })
+    const events = useEventsStore()
+    await events.load()
+    return events
+  }
+
+  it('opens the live event first, then testing, then any other', async () => {
+    let events = await loaded([event('a', 'ended'), event('b', 'testing'), event('c', 'live')])
+    expect(events.selected?.id).toBe('c')
+    setActivePinia(createPinia())
+    events = await loaded([event('a', 'ended'), event('b', 'testing')])
+    expect(events.selected?.id).toBe('b')
+    setActivePinia(createPinia())
+    events = await loaded([event('a', 'ended')])
+    expect(events.selected?.id).toBe('a')
+    setActivePinia(createPinia())
+    events = await loaded([])
+    expect(events.selected).toBeNull()
+  })
+
+  it('keeps the chosen event until the launcher restarts', async () => {
+    let events = await loaded([event('b', 'testing'), event('c', 'live')])
+    events.select('b')
+    expect(events.selected?.id).toBe('b')
+    events.select('gone')
+    expect(events.selected?.id).toBe('c')
+    setActivePinia(createPinia())
+    events = await loaded([event('b', 'testing'), event('c', 'live')])
+    expect(events.selected?.id).toBe('c')
+  })
 })
 
 describe('launch store', () => {

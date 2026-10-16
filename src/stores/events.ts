@@ -26,24 +26,17 @@ export const useEventsStore = defineStore('events', () => {
 
   const byId = (id: string) => events.value.find((e) => e.id === id)
 
-  const storedId = (() => {
-    try {
-      return localStorage.getItem('selectedEvent')
-    } catch {
-      return null
-    }
-  })()
-  const selectedId = ref<string | null>(storedId)
-  const selected = computed(
-    () => byId(selectedId.value ?? '') ?? events.value.find((e) => e.status !== 'ended') ?? events.value[0] ?? null,
+  const defaultEvent = computed(
+    () =>
+      events.value.find((e) => e.status === 'live') ??
+      events.value.find((e) => e.status === 'testing') ??
+      events.value[0] ??
+      null,
   )
+  const selectedId = ref<string | null>(null)
+  const selected = computed(() => (selectedId.value && byId(selectedId.value)) || defaultEvent.value)
   function select(id: string) {
     selectedId.value = id
-    try {
-      localStorage.setItem('selectedEvent', id)
-    } catch {
-      // si localStorage no esta disponible, la selección no se guarda
-    }
   }
 
   return { events, offline, loading, error, load, byId, selected, select }

@@ -36,7 +36,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppBackdrop :dim-bottom="route.name === 'home'" />
+  <AppBackdrop :dim-bottom="route.name === 'home' || route.name === 'event'" />
   <div class="relative z-10 flex h-full">
     <Sidebar v-if="ready && settings.settings?.onboardingDone" />
     <div class="relative flex min-w-0 flex-1 flex-col">

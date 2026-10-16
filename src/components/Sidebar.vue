@@ -1,18 +1,38 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import SkinHead from './SkinHead.vue'
 import IconDiscord from './icons/IconDiscord.vue'
 import IconX from './icons/IconX.vue'
 import { useAccountsStore } from '@/stores/accounts'
 import { useSkinStore } from '@/stores/skin'
 import { useErrorsStore } from '@/stores/errors'
-import { api } from '@/api/tauri'
+import { useEventsStore } from '@/stores/events'
+import { api, eventName } from '@/api/tauri'
 
 const accounts = useAccountsStore()
 const skin = useSkinStore()
 const errors = useErrorsStore()
+const events = useEventsStore()
+const route = useRoute()
+const router = useRouter()
+const { locale } = useI18n()
 
+const eventsOpen = ref(true)
+const inEvents = computed(() => route.name === 'home' || route.name === 'event')
+
+function openEvents() {
+  if (inEvents.value) {
+    eventsOpen.value = !eventsOpen.value
+    return
+  }
+  eventsOpen.value = true
+  router.push(events.selected ? `/event/${events.selected.id}` : '/')
+}
+
+const homeIcon = 'M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z'
 const links = [
-  { to: '/', key: 'nav.home', icon: 'M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z' },
   { to: '/accounts', key: 'nav.accounts', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8.5c.6-3.4 3.5-5.5 7-5.5s6.4 2.1 7 5.5' },
   { to: '/settings', key: 'nav.settings', icon: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 4.5v5M9 14.5v5' },
 ]
@@ -26,6 +46,27 @@ const links = [
     </div>
 
     <nav class="flex flex-col gap-0.5">
+      <button
+        class="nav-item relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-[13.5px] font-medium"
+        :class="{ active: inEvents }"
+        :aria-expanded="events.events.length ? eventsOpen : undefined"
+        @click="openEvents"
+      >
+        <svg viewBox="0 0 24 24" class="h-[17px] w-[17px] shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path :d="homeIcon" />
+        </svg>
+        {{ $t('nav.home') }}
+      </button>
+      <div v-if="events.events.length" class="event-list" :class="{ open: eventsOpen }">
+        <ul class="overflow-hidden">
+          <li v-for="e in events.events" :key="e.id">
+            <RouterLink :to="`/event/${e.id}`" class="sub-item" :class="{ active: inEvents && e.id === events.selected?.id }" :tabindex="eventsOpen ? 0 : -1">
+              <span class="truncate">{{ eventName(e, locale) ?? e.id }}</span>
+              <span v-if="e.status === 'ended'" class="shrink-0 text-[10.5px] text-faint">{{ $t('status.ended') }}</span>
+            </RouterLink>
+          </li>
+        </ul>
+      </div>
       <RouterLink
         v-for="link in links"
         :key="link.to"
@@ -83,6 +124,54 @@ const links = [
   transition: transform 0.18s ease;
 }
 .nav-item.active::before {
+  transform: translateY(-50%) scaleY(1);
+}
+.event-list {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+.event-list.open {
+  grid-template-rows: 1fr;
+}
+.sub-item {
+  position: relative;
+  display: flex;
+  width: calc(100% - 20px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-left: 20px;
+  padding: 6px 10px 6px 21px;
+  border-left: 1px solid var(--color-line);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--color-muted);
+  transition: color 0.12s;
+}
+.event-list.open ul {
+  padding: 2px 0 4px;
+}
+.sub-item:hover {
+  color: var(--color-text);
+}
+.sub-item.active {
+  color: #fff;
+}
+.sub-item::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  width: 1px;
+  height: 14px;
+  background: var(--color-ember);
+  box-shadow: 0 0 8px var(--color-ember);
+  transform: translateY(-50%) scaleY(0);
+  transition: transform 0.18s ease;
+}
+.sub-item.active::before {
   transform: translateY(-50%) scaleY(1);
 }
 .social {
