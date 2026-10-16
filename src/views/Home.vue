@@ -189,7 +189,7 @@ function stopGame() {
             <span v-if="launch.percent !== null" class="tabular-nums">{{ Math.floor(launch.percent) }}%</span>
           </div>
           <div class="h-[3px] max-w-xs overflow-hidden rounded-full bg-white/10">
-            <div v-if="launch.percent !== null" class="h-full rounded-full bg-ember transition-[width] duration-300" :style="{ width: `${launch.percent}%` }" />
+            <div v-if="launch.percent !== null" class="h-full rounded-full bg-ember transition-[width] duration-150 ease-linear" :style="{ width: `${launch.percent}%` }" />
             <div v-else class="indeterminate h-full w-1/4 rounded-full bg-ember" />
           </div>
         </template>
