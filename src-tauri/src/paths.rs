@@ -34,6 +34,9 @@ impl Paths {
     pub fn logs_dir(&self) -> PathBuf {
         self.root.join("logs")
     }
+    pub fn instances_dir(&self) -> PathBuf {
+        self.root.join("theseus").join("profiles")
+    }
     pub fn tmp_dir(&self) -> PathBuf {
         self.root.join("tmp")
     }

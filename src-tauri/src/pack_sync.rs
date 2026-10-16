@@ -497,7 +497,20 @@ async fn ensure_instance(
     cancel: &CancellationToken,
 ) -> AppResult<String> {
     let loader = versions.loader.to_theseus();
-    let found = find_instance(event_id, state).await?;
+    let found = match find_instance(event_id, state).await? {
+        Some(meta) if !has_game_dir(paths, &meta.instance.path).await? => {
+            log::warn!("la carpeta del evento {event_id} no esta, reinstalando");
+            if let Err(err) = theseus::instance::remove(&meta.instance.id).await {
+                log::warn!("no se pudo eliminar la antigua instancia: {err}");
+            }
+            state.instance_id = None;
+            state.files.clear();
+            state.pack_version = None;
+            state.save(paths, event_id).await?;
+            None
+        }
+        found => found,
+    };
     let Some(meta) = found else {
         reporter.step(Step::Minecraft);
         let job = theseus::install::create_instance(
@@ -567,6 +580,16 @@ async fn ensure_instance(
         .await?;
     }
     Ok(id)
+}
+
+/// Solo se cuenta como borrado si no existe la carpeta.
+/// En caso de algun error de acceso o algo, no se reinstala
+async fn has_game_dir(paths: &Paths, instance_path: &str) -> AppResult<bool> {
+    match tokio::fs::metadata(paths.instances_dir().join(instance_path)).await {
+        Ok(meta) => Ok(meta.is_dir()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(err) => Err(err.into()),
+    }
 }
 
 async fn find_instance(
@@ -672,6 +695,27 @@ mod tests {
             "packUrl": pack_url, "packSha512": sha512, "packVersion": "1.0.0"
         }))
         .unwrap()
+    }
+
+    #[tokio::test]
+    async fn game_dir_check_tells_deleted_from_present() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(dir.path().to_path_buf());
+        assert!(
+            !has_game_dir(&paths, "hellcraft2").await.unwrap(),
+            "a deleted folder is not an error"
+        );
+        tokio::fs::create_dir_all(paths.instances_dir().join("hellcraft2"))
+            .await
+            .unwrap();
+        assert!(has_game_dir(&paths, "hellcraft2").await.unwrap());
+        tokio::fs::write(paths.instances_dir().join("file"), b"x")
+            .await
+            .unwrap();
+        assert!(
+            !has_game_dir(&paths, "file").await.unwrap(),
+            "a file is not a game folder"
+        );
     }
 
     #[tokio::test]
