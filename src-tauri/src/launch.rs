@@ -12,7 +12,7 @@ use crate::events::{self, EventStatus};
 use crate::game_process::{self, SavedGame};
 use crate::progress::{Reporter, Step};
 use crate::state::{AppState, GameHandle, RunningGame};
-use crate::{integrity, java, pack_sync, settings};
+use crate::{integrity, java, pack_sync, private_mods, settings};
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -92,7 +92,19 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
     let major = java::required_major(&state.paths, &versions.minecraft).await?;
     let java_exe = java::ensure(&state.paths, major, &reporter, &cancel).await?;
     check_cancel(&cancel)?;
-    let outcome = pack_sync::sync(&state.paths, &event, &pack, &reporter, &cancel).await?;
+    let mut outcome = pack_sync::sync(&state.paths, &event, &pack, &reporter, &cancel).await?;
+    check_cancel(&cancel)?;
+    let private = private_mods::sync(
+        &state.paths,
+        &event,
+        &outcome.game_dir,
+        &outcome.allowed_mods,
+        None,
+        &reporter,
+        &cancel,
+    )
+    .await?;
+    outcome.allowed_mods.extend(private);
     check_cancel(&cancel)?;
 
     reporter.step(Step::Integrity);

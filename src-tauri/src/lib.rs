@@ -12,6 +12,7 @@ mod launch;
 mod net;
 mod pack_sync;
 mod paths;
+mod private_mods;
 mod progress;
 mod settings;
 mod state;

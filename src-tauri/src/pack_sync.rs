@@ -42,6 +42,7 @@ pub struct EventState {
     pub loader: Option<Loader>,
     pub loader_version: Option<String>,
     pub files: BTreeMap<String, String>,
+    pub private_files: BTreeMap<String, String>,
 }
 
 impl EventState {
@@ -394,7 +395,7 @@ async fn matches_hash(path: &Path, sha512: &str) -> bool {
             .is_ok_and(|h| h.eq_ignore_ascii_case(sha512))
 }
 
-fn safe_version(version: &str) -> AppResult<&str> {
+pub(crate) fn safe_version(version: &str) -> AppResult<&str> {
     let ok = !version.is_empty()
         && version.len() <= 64
         && version

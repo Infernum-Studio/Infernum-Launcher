@@ -15,6 +15,8 @@ pub const MSA_ENABLED: bool = match option_env!("INFERNUM_MSA_ENABLED") {
     None => true,
 };
 
+pub const API_BASE_URL: &str = build_env!("INFERNUM_API_BASE_URL", "");
+
 pub const DISCORD_INVITE_URL: &str = "https://discord.gg/RZuNWDvDQg";
 pub const TWITTER_URL: &str = "https://x.com/Infernum_Studio";
 
@@ -49,6 +51,15 @@ pub fn events_public_key() -> String {
         return key;
     }
     EVENTS_PUBLIC_KEY.to_string()
+}
+
+pub fn api_base_url() -> String {
+    if cfg!(debug_assertions)
+        && let Ok(url) = std::env::var("INFERNUM_API_URL")
+    {
+        return url;
+    }
+    API_BASE_URL.to_string()
 }
 
 pub fn user_agent() -> String {

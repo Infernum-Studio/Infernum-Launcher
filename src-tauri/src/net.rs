@@ -120,6 +120,30 @@ pub async fn download_verified(
     expected: Expected<'_>,
     size: Size,
     cancel: &CancellationToken,
+    on_bytes: impl FnMut(u64) + Send,
+) -> AppResult<()> {
+    download(url, None, dest, expected, size, cancel, on_bytes).await
+}
+
+pub async fn download_from_api(
+    url: &str,
+    bearer: Option<&str>,
+    dest: &Path,
+    expected: Expected<'_>,
+    size: Size,
+    cancel: &CancellationToken,
+    on_bytes: impl FnMut(u64) + Send,
+) -> AppResult<()> {
+    download(url, Some(bearer), dest, expected, size, cancel, on_bytes).await
+}
+
+async fn download(
+    url: &str,
+    api: Option<Option<&str>>,
+    dest: &Path,
+    expected: Expected<'_>,
+    size: Size,
+    cancel: &CancellationToken,
     mut on_bytes: impl FnMut(u64) + Send,
 ) -> AppResult<()> {
     check_scheme(url)?;
@@ -146,10 +170,26 @@ pub async fn download_verified(
         file.write_all(&bytes).await?;
         on_bytes(total);
     } else {
+        let mut request = CLIENT.get(url);
+        if let Some(Some(token)) = api {
+            request = request.bearer_auth(token);
+        }
         let resp = tokio::select! {
             _ = cancel.cancelled() => return Err(AppError::cancelled()),
-            resp = CLIENT.get(url).send() => resp?.error_for_status()?,
+            resp = request.send() => resp?,
         };
+        if api.is_some()
+            && matches!(
+                resp.status(),
+                reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::FORBIDDEN
+            )
+        {
+            return Err(AppError::new(
+                "access_denied",
+                format!("{url}: {}", resp.status()),
+            ));
+        }
+        let resp = resp.error_for_status()?;
         let mut stream = resp.bytes_stream();
         loop {
             let chunk = tokio::select! {

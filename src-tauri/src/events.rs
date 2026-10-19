@@ -68,6 +68,16 @@ impl Loader {
     }
 }
 
+/// Jar que solo da la API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PrivateMod {
+    pub id: String,
+    pub file_name: String,
+    pub size: u64,
+    pub sha512: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Event {
@@ -82,7 +92,8 @@ pub struct Event {
     pub minecraft: Option<String>,
     pub loader: Option<Loader>,
     pub loader_version: Option<String>,
-    pub private_mods_url: Option<String>,
+    #[serde(default)]
+    pub private_mods: Vec<PrivateMod>,
     pub ram: Option<RamHint>,
     pub starts_at: Option<chrono::DateTime<chrono::Utc>>,
     pub news_url: Option<String>,

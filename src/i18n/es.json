@@ -148,6 +148,7 @@
     "invalid_data": "Un archivo del launcher está dañado o tiene un formato inesperado.",
     "invalid_archive": "Un archivo descargado no se pudo abrir. Inténtalo de nuevo.",
     "internal": "Error interno del launcher. Reinícialo e inténtalo de nuevo.",
-    "events_signature": "La lista de eventos no tiene una firma válida. Avisa al staff."
+    "events_signature": "La lista de eventos no tiene una firma válida. Avisa al staff.",
+    "access_denied": "No tienes acceso a la instancia de este evento."
   }
 }
