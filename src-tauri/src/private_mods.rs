@@ -170,7 +170,7 @@ async fn sync_from(
         }
     }
     if !missing.is_empty() && base.is_empty() {
-        return Err(AppError::network("Esta build no tiene API URL"));
+        return Err(AppError::api_unavailable());
     }
 
     let total: u64 = missing.iter().map(|(m, _)| m.size).sum();

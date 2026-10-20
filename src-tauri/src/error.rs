@@ -37,6 +37,10 @@ impl AppError {
         Self::new("hash_mismatch", message)
     }
 
+    pub fn api_unavailable() -> Self {
+        Self::new("api_unavailable", "this build has no API URL")
+    }
+
     pub fn cancelled() -> Self {
         Self::new("cancelled", "cancelled by the user")
     }
