@@ -13,6 +13,9 @@ impl Paths {
     pub fn settings_file(&self) -> PathBuf {
         self.root.join("settings.json")
     }
+    pub fn session_file(&self) -> PathBuf {
+        self.root.join("session.json")
+    }
     pub fn cache_dir(&self) -> PathBuf {
         self.root.join("cache")
     }
@@ -77,11 +80,30 @@ impl Drop for TempFile {
 }
 
 pub async fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    write_atomic_as(path, bytes, false).await
+}
+
+pub async fn write_atomic_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    write_atomic_as(path, bytes, true).await
+}
+
+async fn write_atomic_as(path: &Path, bytes: &[u8], private: bool) -> std::io::Result<()> {
     let parent = path.parent().unwrap_or(Path::new("."));
     tokio::fs::create_dir_all(parent).await?;
     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("file");
     let tmp = TempFile::beside(path, name);
-    tokio::fs::write(tmp.path(), bytes).await?;
+    let mut options = tokio::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    if private {
+        options.mode(0o600);
+    }
+    #[cfg(not(unix))]
+    let _ = private;
+    let mut file = options.open(tmp.path()).await?;
+    tokio::io::AsyncWriteExt::write_all(&mut file, bytes).await?;
+    file.sync_all().await?;
+    drop(file);
     tmp.persist(path).await
 }
 
