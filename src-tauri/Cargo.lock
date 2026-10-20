@@ -2908,6 +2908,7 @@ dependencies = [
  "dirs 6.0.0",
  "flate2",
  "futures",
+ "getrandom 0.4.3",
  "hex",
  "log",
  "md-5",

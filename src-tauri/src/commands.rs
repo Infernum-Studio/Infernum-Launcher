@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 use crate::accounts::{self, Account};
+use crate::discord_auth::{self, LoginOutcome, SessionInfo};
 use crate::error::{AppError, AppResult};
 use crate::events::{self, EventsList};
 use crate::settings::{self, Settings};
@@ -232,6 +233,32 @@ pub async fn accounts_set_active(
         return Err(AppError::new("account_not_found", "unknown account"));
     }
     update_accounts(&state, |settings| settings.active_account = Some(id)).await
+}
+
+#[tauri::command]
+pub async fn discord_session(state: State<'_, AppState>) -> AppResult<Option<SessionInfo>> {
+    Ok(discord_auth::current(&state.paths).await.map(|s| s.info()))
+}
+
+#[tauri::command]
+pub async fn discord_login(state: State<'_, AppState>) -> AppResult<LoginOutcome> {
+    let (id, cancel) = state.new_discord_login();
+    let outcome = discord_auth::login(&state.paths, &cancel).await?;
+    Ok(match outcome {
+        LoginOutcome::Cancelled if !state.is_current_discord_login(id) => LoginOutcome::Replaced,
+        other => other,
+    })
+}
+
+#[tauri::command]
+pub fn discord_cancel_login(state: State<'_, AppState>) {
+    state.cancel_discord_login();
+}
+
+#[tauri::command]
+pub async fn discord_logout(state: State<'_, AppState>) -> AppResult<()> {
+    state.cancel_discord_login();
+    discord_auth::logout(&state.paths).await
 }
 
 #[tauri::command]

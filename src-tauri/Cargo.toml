@@ -28,6 +28,7 @@ chrono = { version = "0.4", features = ["serde"] }
 dirs = "6"
 flate2 = "1"
 futures = "0.3"
+getrandom = "0.4"
 hex = "0.4"
 log = "0.4"
 md-5 = "0.10"
@@ -40,7 +41,7 @@ shlex = "1"
 sysinfo = { version = "0.37", default-features = false, features = ["system"] }
 tar = "0.4"
 thiserror = "2"
-tokio = { version = "1", features = ["fs", "io-util", "macros", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
 tokio-util = "0.7"
 tracing = { version = "0.1", features = ["log"] }
 uuid = { version = "1", features = ["v4"] }

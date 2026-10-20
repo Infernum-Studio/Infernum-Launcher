@@ -26,6 +26,7 @@ pub struct AppState {
     pub launch_lock: Mutex<()>,
     pub running: std::sync::Mutex<Option<RunningGame>>,
     cancel: std::sync::Mutex<CancellationToken>,
+    discord_login: std::sync::Mutex<(u64, CancellationToken)>,
     theseus: OnceCell<()>,
     pub restored: OnceCell<()>,
 }
@@ -41,6 +42,7 @@ impl AppState {
             launch_lock: Mutex::new(()),
             running: std::sync::Mutex::new(None),
             cancel: std::sync::Mutex::new(CancellationToken::new()),
+            discord_login: std::sync::Mutex::new((0, CancellationToken::new())),
             theseus: OnceCell::new(),
             restored: OnceCell::new(),
         }
@@ -59,6 +61,21 @@ impl AppState {
 
     pub fn cancel_launch(&self) {
         self.cancel.lock().expect("cancel lock").cancel();
+    }
+
+    pub fn new_discord_login(&self) -> (u64, CancellationToken) {
+        let mut current = self.discord_login.lock().expect("discord lock");
+        current.1.cancel();
+        *current = (current.0 + 1, CancellationToken::new());
+        current.clone()
+    }
+
+    pub fn is_current_discord_login(&self, id: u64) -> bool {
+        self.discord_login.lock().expect("discord lock").0 == id
+    }
+
+    pub fn cancel_discord_login(&self) {
+        self.discord_login.lock().expect("discord lock").1.cancel();
     }
 
     pub fn running(&self) -> Option<RunningGame> {

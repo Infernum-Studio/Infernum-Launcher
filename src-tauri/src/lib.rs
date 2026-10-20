@@ -3,6 +3,7 @@
 mod accounts;
 mod commands;
 mod config;
+mod discord_auth;
 mod error;
 mod events;
 mod game_process;
@@ -111,6 +112,10 @@ pub fn run() {
             commands::accounts_login_microsoft,
             commands::account_skin,
             commands::accounts_set_active,
+            commands::discord_session,
+            commands::discord_login,
+            commands::discord_cancel_login,
+            commands::discord_logout,
             commands::play,
             commands::cancel_install,
             commands::kill_game,
