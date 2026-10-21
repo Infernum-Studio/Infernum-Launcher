@@ -152,6 +152,9 @@
     "access_denied": "No tienes acceso a la instancia de este evento.",
     "discord_login_failed": "No se pudo iniciar sesión con Discord. Inténtalo de nuevo.",
     "discord_port_busy": "Otro programa está usando el puerto 53682. Ciérralo e inténtalo de nuevo.",
+    "login_required": "Inicia sesión con Discord para jugar este evento.",
+    "not_whitelisted": "No estás en la lista de beta testers de este evento.",
+    "access_check_failed": "No se pudo comprobar tu acceso a este evento. Inténtalo de nuevo en un rato.",
     "api_unavailable": "Esta build del launcher no tiene la API URL de Infernum. Avisa al staff."
   }
 }

@@ -1,6 +1,8 @@
 #![recursion_limit = "512"]
 
+mod access;
 mod accounts;
+mod api;
 mod commands;
 mod config;
 mod discord_auth;

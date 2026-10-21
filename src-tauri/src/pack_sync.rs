@@ -43,6 +43,7 @@ pub struct EventState {
     pub loader_version: Option<String>,
     pub files: BTreeMap<String, String>,
     pub private_files: BTreeMap<String, String>,
+    pub access_grant: Option<crate::access::AccessGrant>,
 }
 
 impl EventState {

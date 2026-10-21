@@ -12,7 +12,7 @@ use crate::events::{self, EventStatus};
 use crate::game_process::{self, SavedGame};
 use crate::progress::{Reporter, Step};
 use crate::state::{AppState, GameHandle, RunningGame};
-use crate::{integrity, java, pack_sync, private_mods, settings};
+use crate::{access, integrity, java, pack_sync, private_mods, settings};
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -84,6 +84,8 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
         .and_then(|id| settings.accounts.iter().find(|a| &a.id == id))
         .cloned()
         .ok_or_else(|| AppError::new("no_account", "no active account"))?;
+    let session = access::check(&state, &event).await?;
+    check_cancel(&cancel)?;
 
     state.theseus().await?;
     let pack = pack_sync::load_pack(&state.paths, &event, &reporter, &cancel).await?;
@@ -99,7 +101,7 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
         &event,
         &outcome.game_dir,
         &outcome.allowed_mods,
-        None,
+        session.as_ref().map(|s| s.token.as_str()),
         &reporter,
         &cancel,
     )
