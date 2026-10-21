@@ -36,6 +36,9 @@ pub fn data_root() -> std::path::PathBuf {
 
 pub fn run() {
     let root = data_root();
+    if let Err(err) = paths::make_private_dir(&root) {
+        eprintln!("could not restrict the data folder: {err}");
+    }
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

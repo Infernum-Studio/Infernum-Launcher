@@ -107,6 +107,16 @@ async fn write_atomic_as(path: &Path, bytes: &[u8], private: bool) -> std::io::R
     tmp.persist(path).await
 }
 
+pub fn make_private_dir(path: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(path)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(())
+}
+
 pub fn normalize_rel(relative: &str) -> Option<String> {
     let mut parts = Vec::new();
     for part in relative.split(['/', '\\']) {
@@ -157,6 +167,19 @@ mod tests {
         assert_eq!(normalize_rel("mods\\a.jar").as_deref(), Some("mods/a.jar"));
         assert_eq!(normalize_rel("mods/../a.jar"), None);
         assert_eq!(normalize_rel("./"), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn private_dir_is_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("data");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o755)).unwrap();
+        make_private_dir(&root).unwrap();
+        let mode = std::fs::metadata(&root).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o700);
     }
 
     #[tokio::test]
