@@ -87,6 +87,15 @@ export interface AccountsList {
   active: string | null
 }
 
+export interface DiscordSession {
+  user: { id: string; name: string }
+  expiresAt: string
+}
+
+export type DiscordLoginOutcome =
+  | { status: 'loggedIn'; session: DiscordSession }
+  | { status: 'cancelled' | 'denied' | 'timedOut' | 'replaced' }
+
 export type FolderKind = 'game' | 'logs' | 'screenshots' | 'quarantine' | 'launcherLogs'
 
 export const api = {
@@ -101,6 +110,10 @@ export const api = {
   accountsLoginMicrosoft: () => call<AccountsList | null>('accounts_login_microsoft'),
   accountSkin: (id: string) => call<{ dataUrl: string; slim: boolean }>('account_skin', { id }),
   openLink: (link: 'discord' | 'twitter') => call<void>('open_link', { link }),
+  discordSession: () => call<DiscordSession | null>('discord_session'),
+  discordLogin: () => call<DiscordLoginOutcome>('discord_login'),
+  discordCancelLogin: () => call<void>('discord_cancel_login'),
+  discordLogout: () => call<void>('discord_logout'),
   play: (eventId: string) => call<void>('play', { eventId }),
   cancelInstall: () => call<void>('cancel_install'),
   killGame: () => call<void>('kill_game'),

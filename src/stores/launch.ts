@@ -8,6 +8,7 @@ import {
   type ProgressStep,
   type QuarantinedPayload,
 } from '@/api/tauri'
+import { useDiscordStore } from './discord'
 
 export type PlayPhase = 'idle' | 'checking' | 'installing' | 'launching' | 'running'
 
@@ -31,6 +32,7 @@ export const useLaunchStore = defineStore('launch', () => {
   const error = ref<AppError | null>(null)
   const quarantined = ref<QuarantinedPayload | null>(null)
   const crashedLog = ref<{ eventId: string; logPath: string } | null>(null)
+  const needsDiscord = ref<{ eventId: string; expired: boolean } | null>(null)
   let listening = false
 
   async function listenAll() {
@@ -72,7 +74,12 @@ export const useLaunchStore = defineStore('launch', () => {
       await api.play(id)
     } catch (err) {
       const e = toAppError(err)
-      error.value = e.code === 'cancelled' ? null : e
+      if (e.code === 'login_required') {
+        const discord = useDiscordStore()
+        needsDiscord.value = { eventId: id, expired: !!discord.session }
+        discord.session = null
+      }
+      error.value = e.code === 'cancelled' || e.code === 'login_required' ? null : e
       phase.value = 'idle'
       step.value = null
       percent.value = null
@@ -93,6 +100,7 @@ export const useLaunchStore = defineStore('launch', () => {
     error,
     quarantined,
     crashedLog,
+    needsDiscord,
     listenAll,
     play,
     stop,

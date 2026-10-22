@@ -12,6 +12,7 @@ import { useAccountsStore } from './stores/accounts'
 import { useEventsStore } from './stores/events'
 import { useLaunchStore } from './stores/launch'
 import { useErrorsStore } from './stores/errors'
+import { useDiscordStore } from './stores/discord'
 
 const router = useRouter()
 const route = useRoute()
@@ -20,6 +21,7 @@ const accounts = useAccountsStore()
 const events = useEventsStore()
 const launch = useLaunchStore()
 const errors = useErrorsStore()
+const discord = useDiscordStore()
 const ready = ref(false)
 
 onMounted(async () => {
@@ -27,6 +29,7 @@ onMounted(async () => {
     await Promise.all([settings.load(), accounts.load(), launch.listenAll()])
     if (!settings.settings?.onboardingDone) await router.replace('/welcome')
     events.load()
+    discord.load().catch(errors.report)
   } catch (err) {
     errors.report(err)
   } finally {

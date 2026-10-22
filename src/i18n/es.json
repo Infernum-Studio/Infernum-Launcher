@@ -7,7 +7,7 @@
     "save": "Guardar",
     "remove": "Quitar",
     "details": "Detalles",
-    "loading": "Cargando…",
+    "loading": "Cargando...",
     "retry": "Reintentar",
     "cancel": "Cancelar"
   },
@@ -52,15 +52,18 @@
   },
   "play": {
     "play": "Jugar",
-    "checking": "Comprobando…",
-    "installing": "Instalando…",
-    "launching": "Iniciando…",
+    "checking": "Comprobando...",
+    "installing": "Instalando...",
+    "launching": "Iniciando...",
     "running": "Detener",
     "ended": "Evento terminado",
-    "noAccount": "Añade una cuenta para jugar",
+    "noAccount": "Añade una cuenta",
     "stopTitle": "¿Cerrar el juego?",
-    "stopBody": "Minecraft se cerrará al momento.",
-    "stopConfirm": "Cerrar el juego"
+    "stopBody": "Minecraft se cerrará al instante.",
+    "stopConfirm": "Cerrar el juego",
+    "discordTitle": "Inicia sesión con Discord",
+    "discordBody": "Este evento está en pruebas. Inicia sesión con Discord para comprobar que eres un beta tester.",
+    "discordExpired": "Tu sesión de Discord ya no es válida. Vuelve a iniciar sesión para jugar este evento."
   },
   "progress": {
     "checking": "Comprobando",
@@ -84,12 +87,19 @@
     "loginMicrosoft": "Iniciar sesión con Microsoft",
     "orOffline": "o usa una cuenta no premium",
     "microsoftTitle": "Cuenta de Microsoft",
-    "microsoftHint": "Inicia sesión con tu cuenta de Minecraft premium para usar tu nombre y tu skin.",
+    "microsoftHint": "Inicia sesión con tu cuenta de Minecraft premium",
     "offlineTitle": "No premium",
     "signedIn": "Sesión iniciada con Microsoft",
     "signOut": "Cerrar sesión",
     "useAnother": "Usar otra cuenta",
-    "waitingMicrosoft": "Esperando a Microsoft…"
+    "waitingMicrosoft": "Esperando a Microsoft...",
+    "discordTitle": "Discord",
+    "discordHint": "Solo hace falta para jugar los eventos en pruebas",
+    "discordSignedIn": "Sesión iniciada con Discord",
+    "loginDiscord": "Iniciar sesión con Discord",
+    "waitingDiscord": "Completa el inicio de sesión en el navegador",
+    "discordDenied": "Has cancelado el inicio de sesión en Discord.",
+    "discordTimedOut": "Se acabó el tiempo. Inténtalo de nuevo."
   },
   "settings": {
     "title": "Ajustes",

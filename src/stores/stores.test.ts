@@ -18,6 +18,10 @@ const mocks = vi.hoisted(() => {
       gameStatus: vi.fn(),
       accountSkin: vi.fn(),
       eventsList: vi.fn(),
+      discordLogin: vi.fn(),
+      discordLogout: vi.fn(),
+      discordSession: vi.fn(),
+      discordCancelLogin: vi.fn(),
     },
     listenTo: {
       progress: listen('progress'),
@@ -39,6 +43,7 @@ const { useLaunchStore } = await import('./launch')
 const { useErrorsStore } = await import('./errors')
 const { useEventsStore } = await import('./events')
 const { useSkinStore } = await import('./skin')
+const { useDiscordStore } = await import('./discord')
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -118,6 +123,25 @@ describe('launch store', () => {
     expect(launch.phase).toBe('idle')
   })
 
+  it('asks for a Discord login instead of showing an error', async () => {
+    const launch = useLaunchStore()
+    mocks.api.play.mockRejectedValueOnce({ code: 'login_required', message: 'x' })
+    await launch.play('hc')
+    expect(launch.error).toBeNull()
+    expect(launch.needsDiscord).toEqual({ eventId: 'hc', expired: false })
+    expect(launch.phase).toBe('idle')
+  })
+
+  it('a session the API rejects stops showing as logged in', async () => {
+    const discord = useDiscordStore()
+    discord.session = { user: { id: '1', name: 'tester' }, expiresAt: '2026-11-01T00:00:00Z' }
+    const launch = useLaunchStore()
+    mocks.api.play.mockRejectedValueOnce({ code: 'login_required', message: 'x' })
+    await launch.play('hc')
+    expect(launch.needsDiscord).toEqual({ eventId: 'hc', expired: true })
+    expect(discord.session).toBeNull()
+  })
+
   it('stop kills a running game and cancels an install', async () => {
     const launch = useLaunchStore()
     launch.phase = 'installing'
@@ -155,5 +179,87 @@ describe('skin store', () => {
     await expect(skins.fetchSkin('b')).rejects.toMatchObject({ code: 'network' })
     await expect(skins.fetchSkin('b')).resolves.toMatchObject({ dataUrl: 'data:a' })
     expect(mocks.api.accountSkin).toHaveBeenCalledTimes(3)
+  })
+})
+
+describe('discord store', () => {
+  const session = { user: { id: '1', name: 'tester' }, expiresAt: '2026-11-01T00:00:00Z' }
+
+  it('keeps the session after logging in and drops it on logout', async () => {
+    const discord = useDiscordStore()
+    mocks.api.discordLogin.mockResolvedValueOnce({ status: 'loggedIn', session })
+    expect((await discord.login()).status).toBe('loggedIn')
+    expect(discord.session?.user.name).toBe('tester')
+    expect(discord.waiting).toBe(false)
+
+    await discord.logout()
+    expect(discord.session).toBeNull()
+  })
+
+  it('loads the saved session, or none', async () => {
+    const discord = useDiscordStore()
+    expect(discord.loaded).toBe(false)
+    mocks.api.discordSession.mockResolvedValueOnce(session)
+    await discord.load()
+    expect(discord.loaded).toBe(true)
+    expect(discord.session?.user.id).toBe('1')
+    mocks.api.discordSession.mockResolvedValueOnce(null)
+    await discord.load()
+    expect(discord.session).toBeNull()
+  })
+
+  it('counts as loaded even if reading the session fails', async () => {
+    const discord = useDiscordStore()
+    mocks.api.discordSession.mockRejectedValueOnce({ code: 'io', message: 'x' })
+    await expect(discord.load()).rejects.toMatchObject({ code: 'io' })
+    expect(discord.loaded).toBe(true)
+    expect(discord.session).toBeNull()
+  })
+
+  it('denied, timed out and cancelled logins leave no session', async () => {
+    const discord = useDiscordStore()
+    for (const status of ['denied', 'timedOut', 'cancelled'] as const) {
+      mocks.api.discordLogin.mockResolvedValueOnce({ status })
+      expect((await discord.login()).status).toBe(status)
+      expect(discord.session).toBeNull()
+      expect(discord.waiting).toBe(false)
+    }
+  })
+
+  it('a failed login stops waiting and reports the error', async () => {
+    const discord = useDiscordStore()
+    mocks.api.discordLogin.mockRejectedValueOnce({ code: 'api_unavailable', message: 'x' })
+    await expect(discord.login()).rejects.toMatchObject({ code: 'api_unavailable' })
+    expect(discord.waiting).toBe(false)
+    expect(discord.session).toBeNull()
+  })
+
+  it('cancel asks the backend to stop the login', async () => {
+    const discord = useDiscordStore()
+    mocks.api.discordCancelLogin.mockResolvedValueOnce(undefined)
+    await discord.cancel()
+    expect(mocks.api.discordCancelLogin).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the session if logging out fails', async () => {
+    const discord = useDiscordStore()
+    discord.session = session
+    mocks.api.discordLogout.mockRejectedValueOnce({ code: 'io', message: 'x' })
+    await expect(discord.logout()).rejects.toMatchObject({ code: 'io' })
+    expect(discord.session).toEqual(session)
+  })
+
+  it('a replaced login does not stop the new one from waiting', async () => {
+    const discord = useDiscordStore()
+    let finishFirst!: (v: unknown) => void
+    mocks.api.discordLogin
+      .mockReturnValueOnce(new Promise((r) => (finishFirst = r)))
+      .mockReturnValueOnce(new Promise(() => {}))
+    const first = discord.login()
+    void discord.login()
+    finishFirst({ status: 'replaced' })
+    await first
+    expect(discord.waiting).toBe(true)
+    expect(discord.session).toBeNull()
   })
 })

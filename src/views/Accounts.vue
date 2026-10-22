@@ -4,11 +4,17 @@ import AccountForm from '@/components/AccountForm.vue'
 import MicrosoftLogin from '@/components/MicrosoftLogin.vue'
 import AccountRow from '@/components/AccountRow.vue'
 import SettingRow from '@/components/SettingRow.vue'
+import DiscordLogin from '@/components/DiscordLogin.vue'
 import { useAccountsStore } from '@/stores/accounts'
 import { useSettingsStore } from '@/stores/settings'
+import { useDiscordStore } from '@/stores/discord'
+import { useErrorsStore } from '@/stores/errors'
 
 const accounts = useAccountsStore()
 const settings = useSettingsStore()
+const discord = useDiscordStore()
+const errors = useErrorsStore()
+const initial = computed(() => Array.from(discord.session?.user.name ?? '?')[0]?.toUpperCase())
 const microsoft = computed(() => accounts.accounts.filter((a) => a.kind === 'microsoft'))
 const offline = computed(() => accounts.accounts.filter((a) => a.kind === 'offline'))
 </script>
@@ -31,6 +37,23 @@ const offline = computed(() => accounts.accounts.filter((a) => a.kind === 'offli
           <AccountRow v-for="a in offline" :key="a.id" :account="a" />
         </div>
         <AccountForm />
+      </SettingRow>
+
+      <SettingRow :title="$t('accounts.discordTitle')" :hint="$t('accounts.discordHint')">
+        <div v-if="!discord.loaded" class="min-h-11" />
+        <div v-else-if="discord.session" class="flex items-center gap-3 rounded-xl border border-line bg-black/15 p-2.5 pr-3">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#5865F2]/20 text-base font-semibold text-[#8f98ff]" aria-hidden="true">
+            {{ initial }}
+          </span>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-sm font-semibold">{{ discord.session.user.name }}</div>
+            <div class="text-xs text-faint">{{ $t('accounts.discordSignedIn') }}</div>
+          </div>
+          <button class="btn !px-2.5 !py-1.5 text-faint hover:bg-white/5 hover:text-danger" @click="discord.logout().catch(errors.report)">
+            {{ $t('accounts.signOut') }}
+          </button>
+        </div>
+        <DiscordLogin v-else />
       </SettingRow>
     </div>
   </div>

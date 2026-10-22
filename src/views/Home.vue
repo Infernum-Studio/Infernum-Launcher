@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import SkinViewer from '@/components/SkinViewer.vue'
 import ErrorDialog from '@/components/ErrorDialog.vue'
+import DiscordRequiredDialog from '@/components/DiscordRequiredDialog.vue'
 import Modal from '@/components/Modal.vue'
 import { useEventsStore } from '@/stores/events'
 import { useLaunchStore } from '@/stores/launch'
@@ -168,6 +169,7 @@ function stopGame() {
     </Transition>
 
     <ErrorDialog :error="error" @close="launch.error = null" />
+    <DiscordRequiredDialog />
     <Modal :open="confirmStop" :title="$t('play.stopTitle')" :close-label="$t('common.cancel')" @close="confirmStop = false">
       <p class="text-sm text-muted">{{ $t('play.stopBody') }}</p>
       <template #actions>
