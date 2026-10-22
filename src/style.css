@@ -69,9 +69,12 @@ canvas {
   color: #fff;
 }
 
-:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-ember) 75%, transparent);
-  outline-offset: 2px;
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-ember) 75%, transparent);
+    outline-offset: 2px;
+  }
 }
 
 * {
@@ -142,7 +145,7 @@ canvas {
   border: 1px solid var(--color-line);
   &:focus {
     border-color: color-mix(in srgb, var(--color-ember) 60%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ember) 15%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-ember) 60%, transparent);
   }
   &:focus-visible {
     outline: none;
