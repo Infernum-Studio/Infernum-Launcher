@@ -107,6 +107,8 @@
     "jvmArgs": "Argumentos de Java",
     "jvmArgsHint": "Solo para usuarios avanzados. No lo cambies si no sabes lo que haces.",
     "closeOnLaunch": "Ocultar el launcher al jugar",
+    "logReports": "Enviar un informe si el juego crashea",
+    "logReportsHint": "Solo si el juego se cierra con un error o se eliminan archivos de mods/. No se envían datos personales.",
     "folders": "Carpetas",
     "launcherLogs": "Registros del launcher",
     "version": "Versión {version}",

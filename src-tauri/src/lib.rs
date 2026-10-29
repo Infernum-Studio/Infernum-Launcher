@@ -17,6 +17,7 @@ mod pack_sync;
 mod paths;
 mod private_mods;
 mod progress;
+mod reports;
 mod settings;
 mod state;
 

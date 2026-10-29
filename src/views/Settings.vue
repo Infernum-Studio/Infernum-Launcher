@@ -32,12 +32,13 @@ watch(ram, (value) => {
   ramTimer = setTimeout(() => save({ ramMb: value }).catch(errors.report), 350)
 })
 
-const toggle = (key: 'closeOnLaunch') =>
+const toggle = (key: 'closeOnLaunch' | 'logReports') =>
   computed({
     get: () => store.settings?.[key] ?? false,
     set: (value: boolean) => save({ [key]: value }).catch(errors.report),
   })
 const closeOnLaunch = toggle('closeOnLaunch')
+const logReports = toggle('logReports')
 
 async function saveJvmArgs() {
   jvmError.value = null
@@ -76,6 +77,7 @@ async function saveJvmArgs() {
       <SettingRow :title="$t('settings.whilePlaying')">
         <div class="-my-3 divide-y divide-white/6">
           <ToggleSwitch v-model="closeOnLaunch" :label="$t('settings.closeOnLaunch')" />
+          <ToggleSwitch v-model="logReports" :label="$t('settings.logReports')" :hint="$t('settings.logReportsHint')" />
         </div>
       </SettingRow>
 

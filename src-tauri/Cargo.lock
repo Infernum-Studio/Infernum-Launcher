@@ -2913,6 +2913,7 @@ dependencies = [
  "log",
  "md-5",
  "minisign-verify",
+ "regex",
  "reqwest 0.12.28",
  "serde",
  "serde_json",

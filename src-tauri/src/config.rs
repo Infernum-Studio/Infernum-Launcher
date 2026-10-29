@@ -15,7 +15,10 @@ pub const MSA_ENABLED: bool = match option_env!("INFERNUM_MSA_ENABLED") {
     None => true,
 };
 
-pub const API_BASE_URL: &str = build_env!("INFERNUM_API_BASE_URL", "");
+pub const API_BASE_URL: &str = build_env!(
+    "INFERNUM_API_BASE_URL",
+    "https://infernum-api.infernumstudiomc.workers.dev"
+);
 
 pub const DISCORD_INVITE_URL: &str = "https://discord.gg/RZuNWDvDQg";
 pub const TWITTER_URL: &str = "https://x.com/Infernum_Studio";
