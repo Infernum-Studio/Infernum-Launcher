@@ -7,7 +7,11 @@ use crate::settings::Settings;
 
 #[derive(Debug, Clone, Copy)]
 pub enum GameHandle {
-    Spawned(uuid::Uuid),
+    Spawned {
+        uuid: uuid::Uuid,
+        java: Option<crate::game_process::GameProcess>,
+        launched_at: u64,
+    },
     Restored(crate::game_process::GameProcess),
 }
 

@@ -12,7 +12,7 @@ use crate::events::{self, EventStatus};
 use crate::game_process::{self, SavedGame};
 use crate::progress::{Reporter, Step};
 use crate::state::{AppState, GameHandle, RunningGame};
-use crate::{access, integrity, java, pack_sync, private_mods, settings};
+use crate::{access, integrity, java, pack_sync, private_mods, reports, settings};
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -125,6 +125,20 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
                 files: &report.files,
             },
         );
+        if settings.log_reports {
+            let (event_id, game_dir) = (event.id.clone(), outcome.game_dir.clone());
+            let players = report_players(&settings);
+            tauri::async_runtime::spawn(async move {
+                reports::send(
+                    event_id,
+                    reports::Reason::Quarantine,
+                    &game_dir,
+                    report.files,
+                    players,
+                )
+                .await
+            });
+        }
     }
 
     reporter.step(Step::Launching);
@@ -145,7 +159,9 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
             theseus::instance::run(&outcome.instance_id, quick_play).await?
         }
     };
-    match game_process::find_launched_java(launched_at.timestamp().max(0) as u64) {
+    let since = launched_at.timestamp().max(0) as u64;
+    let java = game_process::find_launched_java(since);
+    match java {
         Some(java) => {
             let saved = SavedGame {
                 event_id: event.id.clone(),
@@ -162,7 +178,11 @@ pub async fn play(app: AppHandle, event_id: String) -> AppResult<()> {
     state.set_running(Some(RunningGame {
         event_id: event.id.clone(),
         instance_id: outcome.instance_id.clone(),
-        handle: GameHandle::Spawned(process.uuid),
+        handle: GameHandle::Spawned {
+            uuid: process.uuid,
+            java,
+            launched_at: since,
+        },
         kill_requested: false,
     }));
     let _ = app.emit(
@@ -210,10 +230,12 @@ pub async fn restore(app: &AppHandle) {
 
 async fn is_alive(running: &RunningGame) -> theseus::Result<bool> {
     match running.handle {
-        GameHandle::Spawned(uuid) => Ok(theseus::process::get_by_instance_id(&running.instance_id)
-            .await?
-            .iter()
-            .any(|p| p.uuid == uuid)),
+        GameHandle::Spawned { uuid, .. } => {
+            Ok(theseus::process::get_by_instance_id(&running.instance_id)
+                .await?
+                .iter()
+                .any(|p| p.uuid == uuid))
+        }
         GameHandle::Restored(process) => Ok(process.is_alive()),
     }
 }
@@ -311,7 +333,26 @@ async fn monitor(app: AppHandle, game_dir: PathBuf, started: chrono::DateTime<ch
                     .into_owned(),
             },
         );
+        let settings = state.settings.read().await.clone();
+        if settings.log_reports {
+            reports::send(
+                running.event_id.clone(),
+                reports::Reason::Crash,
+                &game_dir,
+                Vec::new(),
+                report_players(&settings),
+            )
+            .await;
+        }
     }
+}
+
+fn report_players(settings: &settings::Settings) -> Vec<(String, String)> {
+    settings
+        .accounts
+        .iter()
+        .map(|a| (a.name.clone(), a.id.clone()))
+        .collect()
 }
 
 #[derive(Debug, PartialEq)]
@@ -374,13 +415,19 @@ pub async fn kill(state: &AppState) -> AppResult<()> {
     };
     running.kill_requested = true;
     state.set_running(Some(running.clone()));
-    match running.handle {
-        GameHandle::Spawned(_) => theseus::instance::kill(&running.instance_id).await?,
-        GameHandle::Restored(process) => {
-            if !process.kill() {
-                log::warn!("no se pudo detener el proceso {}", process.pid);
-            }
-        }
+    // No se usa theseus::instance::kill porque mantiene el lock de la lista de procesos
+    // mientras espera a que el juego cierre y bloquea su propio monitor y el nuestro
+    let process = match running.handle {
+        // Solo hijos java del launcher
+        GameHandle::Spawned {
+            java, launched_at, ..
+        } => java.or_else(|| game_process::find_launched_java(launched_at)),
+        GameHandle::Restored(process) => Some(process),
+    };
+    match process {
+        Some(process) if process.kill() => {}
+        Some(process) => log::warn!("no se pudo detener el proceso {}", process.pid),
+        None => log::warn!("no se encontró el proceso del juego para detenerlo"),
     }
     Ok(())
 }
