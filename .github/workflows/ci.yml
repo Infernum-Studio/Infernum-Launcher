@@ -148,6 +148,11 @@ jobs:
           pack = out / "hc2-0.0.1.mrpack"
           pack.write_bytes(buf.getvalue())
 
+          private_jar = jar
+          served = out / "api" / "v1" / "events" / "hellcraft2" / "private-mods" / "0.0.1" / "sodium_private"
+          served.parent.mkdir(parents=True, exist_ok=True)
+          served.write_bytes(private_jar)
+
           (out / "events.json").write_text(json.dumps({"schemaVersion": 1, "events": [{
               "id": "hellcraft2",
               "name": {"es": "HellCraft 2"},
@@ -155,6 +160,12 @@ jobs:
               "packUrl": pack.as_uri(),
               "packSha512": hashlib.sha512(buf.getvalue()).hexdigest(),
               "packVersion": "0.0.1",
+              "privateMods": [{
+                  "id": "sodium_private",
+                  "fileName": "sodium-private.jar",
+                  "size": len(private_jar),
+                  "sha512": hashlib.sha512(private_jar).hexdigest(),
+              }],
           }]}))
           (out / "data" / "settings.json").write_text(json.dumps({
               "onboardingDone": True,
@@ -179,6 +190,7 @@ jobs:
           $env:INFERNUM_DATA_DIR = "$e2e\data"
           $env:INFERNUM_EVENTS_URL = ([System.Uri]"$e2e\events.json").AbsoluteUri
           $env:INFERNUM_AUTOPLAY = "hellcraft2"
+          $env:INFERNUM_API_URL = ([System.Uri]"$e2e\api").AbsoluteUri
           $p = Start-Process -FilePath "src-tauri\target\debug\infernum-launcher.exe" -PassThru
           $log = "$e2e\data\logs\launcher.log"
           $deadline = (Get-Date).AddMinutes(10)
@@ -196,6 +208,8 @@ jobs:
           if (-not $result -or $result.Line -notmatch "game started") { throw "autoplay did not start the game" }
           $mods = Get-ChildItem "$e2e\data\theseus\profiles\hellcraft2\mods" -Name
           if ($mods -notcontains "sodium-neoforge-0.8.14+mc1.21.11.jar") { throw "pack mod missing" }
+          if ($mods -notcontains "sodium-private.jar") { throw "private mod missing" }
+          if (Test-Path "$e2e\data\quarantine\hellcraft2") { throw "something was quarantined" }
 
       - name: Run launcher with autoplay (Linux)
         if: runner.os == 'Linux'
@@ -206,6 +220,7 @@ jobs:
           INFERNUM_DATA_DIR="$e2e/data" \
           INFERNUM_EVENTS_URL="file://$e2e/events.json" \
           INFERNUM_AUTOPLAY=hellcraft2 \
+          INFERNUM_API_URL="file://$e2e/api" \
             xvfb-run -a src-tauri/target/debug/infernum-launcher &
           pid=$!
           result=""
@@ -220,6 +235,8 @@ jobs:
           pkill -f "$e2e/data" || true
           [[ "$result" == "autoplay: game started" ]] || { echo "autoplay did not start the game"; exit 1; }
           ls "$e2e/data/theseus/profiles/hellcraft2/mods" | grep -qxF "sodium-neoforge-0.8.14+mc1.21.11.jar" || { echo "pack mod missing"; exit 1; }
+          ls "$e2e/data/theseus/profiles/hellcraft2/mods" | grep -qxF "sodium-private.jar" || { echo "private mod missing"; exit 1; }
+          [ ! -e "$e2e/data/quarantine/hellcraft2" ] || { echo "something was quarantined"; exit 1; }
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
