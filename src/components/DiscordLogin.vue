@@ -31,7 +31,7 @@ async function login() {
     <div class="flex min-h-11 items-center gap-2">
       <button
         class="h-11 flex-1 aria-disabled:pointer-events-none aria-disabled:opacity-60"
-        :class="props.inDialog ? 'btn-primary' : 'btn-ghost'"
+        :class="props.inDialog ? 'btn-danger' : 'btn-ghost'"
         :aria-disabled="discord.waiting"
         @click="login"
       >

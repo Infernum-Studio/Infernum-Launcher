@@ -75,7 +75,7 @@ onBeforeUnmount(deactivate)
     <Transition name="modal" :duration="180">
       <div v-if="open" class="fixed inset-0 z-50 grid place-items-center p-8">
         <div class="overlay absolute inset-0 bg-black/45 backdrop-blur-sm" @click="$emit('close')" />
-        <div ref="dialog" class="dialog glass-strong relative w-full max-w-md rounded-2xl p-6 outline-none" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
+        <div ref="dialog" class="dialog glass-strong relative w-fit max-w-md min-w-72 rounded-2xl p-6 outline-none" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
           <h2 :id="titleId" class="mb-3 text-lg leading-snug font-semibold text-balance">{{ title }}</h2>
           <slot />
           <div class="mt-6 flex justify-end gap-2">
