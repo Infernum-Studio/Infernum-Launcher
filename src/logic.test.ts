@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { phaseForStep } from './stores/launch'
 import { isValidNickname } from './stores/accounts'
-import { errorKey } from './i18n'
+import { errorKey, SELF_EXPLANATORY, showsDetails } from './i18n'
+import es from './i18n/es.json'
 import { toAppError } from './api/tauri'
 
 describe('phaseForStep', () => {
@@ -32,5 +33,19 @@ describe('errors', () => {
   it('normalizes thrown values', () => {
     expect(toAppError({ code: 'io', message: 'x' })).toEqual({ code: 'io', message: 'x' })
     expect(toAppError('boom')).toEqual({ code: 'internal', message: 'boom' })
+  })
+})
+
+describe('showsDetails', () => {
+  it('hides the code only for errors that explain themselves', () => {
+    expect(showsDetails('not_whitelisted')).toBe(false)
+    expect(showsDetails('login_required')).toBe(false)
+    expect(showsDetails('network')).toBe(true)
+    expect(showsDetails('io')).toBe(true)
+    expect(showsDetails('something_new')).toBe(true)
+  })
+
+  it('every hidden code has its own message', () => {
+    for (const code of SELF_EXPLANATORY) expect(es.errors).toHaveProperty(code)
   })
 })
